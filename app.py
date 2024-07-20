@@ -301,19 +301,60 @@ def analyze_lua_code(code):
 @app.route('/')
 def home():
     return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Lua Vulnerability Analyzer</title>
-    </head>
-    <body>
-        <h1>Enter Lua Code</h1>
-        <form action="/analyze" method="post">
-            <textarea name="code" rows="20" cols="80"></textarea><br>
-            <input type="submit" value="Analyze">
-        </form>
-    </body>
-    </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SAM</title>
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <!-- CodeMirror Theme (optional) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/lua/lua.min.js"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-400 via-blue-200 to-blue-500 min-h-screen flex flex-col font-mono">
+
+        <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex justify-center flex-1">
+                    <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-4 flex items-center">
+                        <img class="h-12 w-12 rounded-full" src="static/images/logo.png" alt="Logo">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl">
+            <h1 class="text-2xl font-bold mb-4">Enter Lua Code</h1>
+            <form action="/analyze" method="post">
+                <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
+<div style="display: flex; justify-content: center;">
+    <input type="submit" value="Analyze" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+</div>            </form>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                mode: 'lua',
+                theme: 'material-darker',
+                lineNumbers: true
+            });
+        });
+    </script>
+</body>
+</html>
+
+
     '''
 
 @app.route('/analyze', methods=['POST'])
