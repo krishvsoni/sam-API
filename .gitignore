@@ -1,0 +1,4 @@
+# Default .gitignore for Flask project
+venv/
+__pycache__/
+.vscode/
