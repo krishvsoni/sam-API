@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from luaparser import ast, astnodes
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 INT_MAX = 2147483647
 INT_MIN = -2147483648
@@ -316,7 +318,7 @@ def home():
 </head>
 <body class="bg-gradient-to-r from-blue-400 via-blue-200 to-blue-500 min-h-screen flex flex-col font-mono">
 
-        <nav class="bg-white shadow-md">
+    <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex justify-center flex-1">
@@ -324,24 +326,25 @@ def home():
                 </div>
                 <div class="flex items-center">
                     <div class="ml-4 flex items-center">
-                        <img class="h-12 w-12 rounded-full" src="static/images/logo.png" alt="Logo">
+                        <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo">
                     </div>
                 </div>
-
             </div>
         </div>
     </nav>
 
-    <div class="flex-grow flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl">
-            <h1 class="text-2xl font-bold mb-4">Enter Lua Code</h1>
+    <div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-4xl">
+            <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
             <form action="/analyze" method="post">
                 <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
-<div style="display: flex; justify-content: center;">
-    <input type="submit" value="Analyze" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-</div>            </form>
+                <div class="flex justify-center">
+                    <input type="submit" value="Analyze" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                </div>
+            </form>
         </div>
     </div>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
@@ -353,6 +356,7 @@ def home():
     </script>
 </body>
 </html>
+
 
 
     '''
