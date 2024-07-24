@@ -10,49 +10,60 @@ INT_MIN = -2147483648
 
 vulnerabilities = []
 
+
 def add_vulnerability(name, description, pattern, severity, line):
-    vulnerabilities.append({
-        "name": name,
-        "description": description,
-        "pattern": pattern,
-        "severity": severity,
-        "line": line
-    })
+    vulnerabilities.append(
+        {
+            "name": name,
+            "description": description,
+            "pattern": pattern,
+            "severity": severity,
+            "line": line,
+        }
+    )
+
 
 def is_potential_overflow(number):
     return number >= INT_MAX or number <= INT_MIN
 
+
 def is_potential_underflow(number):
     return number <= INT_MIN or number >= INT_MAX
 
+
 def get_line_number(node):
-    if hasattr(node, 'line') and node.line is not None:
+    if hasattr(node, "line") and node.line is not None:
         return node.line
-    if hasattr(node, '_parent'):
+    if hasattr(node, "_parent"):
         return get_line_number(node._parent)
     return None
+
 
 def analyze_overflow_in_node(node):
     if isinstance(node, (astnodes.AddOp, astnodes.SubOp, astnodes.MultOp)):
         left_operand = node.left
         right_operand = node.right
 
-        if isinstance(left_operand, astnodes.Number) and is_potential_overflow(left_operand.n):
+        if isinstance(left_operand, astnodes.Number) and is_potential_overflow(
+            left_operand.n
+        ):
             add_vulnerability(
                 "Integer Overflow",
                 "Potential integer overflow detected with left operand.",
                 "overflow",
                 "high",
-                get_line_number(left_operand)
+                get_line_number(left_operand),
             )
 
-        if isinstance(right_operand, astnodes.Number) and is_potential_overflow(right_operand.n):
+        if isinstance(right_operand, astnodes.Number) and is_potential_overflow(
+            right_operand.n
+        ):
             add_vulnerability(
                 "Integer Overflow",
                 "Potential integer overflow detected with right operand.",
                 "overflow",
                 "high",
-                get_line_number(right_operand)
+                get_line_number(right_operand),
             )
 
     if isinstance(node, astnodes.LocalAssign):
@@ -63,7 +74,7 @@ def analyze_overflow_in_node(node):
                     "Potential integer overflow detected with local variable assignment.",
                     "overflow",
                     "high",
-                    get_line_number(value)
+                    get_line_number(value),
                 )
 
     if isinstance(node, astnodes.Function):
@@ -74,30 +85,35 @@ def analyze_overflow_in_node(node):
                     "Potential integer overflow detected with function argument.",
                     "overflow",
                     "high",
-                    get_line_number(arg)
+                    get_line_number(arg),
                 )
+
 
 def analyze_underflow_in_node(node):
     if isinstance(node, (astnodes.AddOp, astnodes.SubOp, astnodes.MultOp)):
         left_operand = node.left
         right_operand = node.right
 
-        if isinstance(left_operand, astnodes.Number) and is_potential_underflow(left_operand.n):
+        if isinstance(left_operand, astnodes.Number) and is_potential_underflow(
+            left_operand.n
+        ):
             add_vulnerability(
                 "Integer Underflow",
                 "Potential integer underflow detected with left operand.",
                 "underflow",
                 "high",
-                get_line_number(left_operand)
+                get_line_number(left_operand),
             )
 
-        if isinstance(right_operand, astnodes.Number) and is_potential_underflow(right_operand.n):
+        if isinstance(right_operand, astnodes.Number) and is_potential_underflow(
+            right_operand.n
+        ):
             add_vulnerability(
                 "Integer Underflow",
                 "Potential integer underflow detected with right operand.",
                 "underflow",
                 "high",
-                get_line_number(right_operand)
+                get_line_number(right_operand),
             )
 
     if isinstance(node, astnodes.LocalAssign):
@@ -108,7 +124,7 @@ def analyze_underflow_in_node(node):
                     "Potential integer underflow detected with local variable assignment.",
                     "underflow",
                     "high",
-                    get_line_number(value)
+                    get_line_number(value),
                 )
 
     if isinstance(node, astnodes.Function):
@@ -119,8 +135,9 @@ def analyze_underflow_in_node(node):
                     "Potential integer underflow detected with function argument.",
                     "underflow",
                     "high",
-                    get_line_number(arg)
+                    get_line_number(arg),
                 )
+
 
 def analyze_overflow_and_return(code):
     tree = ast.parse(code)
@@ -132,18 +149,21 @@ def analyze_overflow_and_return(code):
             for body_node in ast.walk(node.body):
                 analyze_overflow_in_node(body_node)
 
-            if node.name.id == 'another_example':
+            if node.name.id == "another_example":
                 for n in node.body.body:
                     if isinstance(n, astnodes.Return):
                         for ret_val in n.values:
-                            if isinstance(ret_val, astnodes.Number) and is_potential_overflow(ret_val.n):
+                            if isinstance(
+                                ret_val, astnodes.Number
+                            ) and is_potential_overflow(ret_val.n):
                                 add_vulnerability(
                                     "Integer Overflow",
                                     f"Potential integer overflow detected in return statement of function '{node.name.id}'.",
                                     "overflow",
                                     "high",
-                                    get_line_number(ret_val)
+                                    get_line_number(ret_val),
                                 )
+
 
 def analyze_underflow_and_return(code):
     tree = ast.parse(code)
@@ -155,18 +175,21 @@ def analyze_underflow_and_return(code):
             for body_node in ast.walk(node.body):
                 analyze_underflow_in_node(body_node)
 
-            if node.name.id == 'another_example':
+            if node.name.id == "another_example":
                 for n in node.body.body:
                     if isinstance(n, astnodes.Return):
                         for ret_val in n.values:
-                            if isinstance(ret_val, astnodes.Number) and is_potential_underflow(ret_val.n):
+                            if isinstance(
+                                ret_val, astnodes.Number
+                            ) and is_potential_underflow(ret_val.n):
                                 add_vulnerability(
                                     "Integer Underflow",
                                     f"Potential integer underflow detected in return statement of function '{node.name.id}'.",
                                     "underflow",
                                     "high",
-                                    get_line_number(ret_val)
+                                    get_line_number(ret_val),
                                 )
+
 
 def analyze_return(code):
     tree = ast.parse(code)
@@ -180,30 +203,47 @@ def analyze_return(code):
                     "A function is missing a return statement.",
                     "missing_return",
                     "low",
-                    get_line_number(node)
+                    get_line_number(node),
                 )
+
 
 def check_private_key_exposure(code):
     tree = ast.parse(code)
-    private_key_words = ["privatekey", "private_key", "secretkey", "secret_key", "keypair", "key_pair", "api_key"]
+    private_key_words = [
+        "privatekey",
+        "private_key",
+        "secretkey",
+        "secret_key",
+        "keypair",
+        "key_pair",
+        "api_key",
+    ]
 
     for node in ast.walk(tree):
         if isinstance(node, astnodes.Assign):
             for target in node.targets:
-                if isinstance(target, astnodes.Name) and target.id.lower() in private_key_words:
+                if (
+                    isinstance(target, astnodes.Name)
+                    and target.id.lower() in private_key_words
+                ):
                     add_vulnerability(
                         "Private Key Exposure",
                         f"Potential exposure of private key in variable '{target.id}'.",
                         "private_key_exposure",
                         "high",
-                        get_line_number(node)
+                        get_line_number(node),
                     )
+
 
 def analyze_reentrancy(code):
     tree = ast.parse(code)
 
     def is_external_call(node):
-        return isinstance(node, astnodes.Call) and isinstance(node.func, astnodes.Name) and node.func.id == "external_call"
+        return (
+            isinstance(node, astnodes.Call)
+            and isinstance(node.func, astnodes.Name)
+            and node.func.id == "external_call"
+        )
 
     def has_state_change(node):
         return isinstance(node, astnodes.Assign)
@@ -213,15 +253,16 @@ def analyze_reentrancy(code):
             body = node.body.body
             for i, n in enumerate(body):
                 if is_external_call(n):
-                    for subsequent_node in body[i+1:]:
+                    for subsequent_node in body[i + 1 :]:
                         if has_state_change(subsequent_node):
                             add_vulnerability(
                                 "Reentrancy",
                                 "A function calls an external contract before updating its state.",
                                 "external_call",
                                 "high",
-                                get_line_number(node)
+                                get_line_number(node),
                             )
+
 
 def analyze_floating_pragma(code):
     deprecated_functions = ["setfenv", "getfenv"]
@@ -235,8 +276,9 @@ def analyze_floating_pragma(code):
                     f"Floating pragma issue detected with function '{node.func.id}'.",
                     "floating_pragma",
                     "low",
-                    get_line_number(node)
+                    get_line_number(node),
                 )
+
 
 def analyze_denial_of_service(code):
     tree = ast.parse(code)
@@ -249,14 +291,19 @@ def analyze_denial_of_service(code):
                     f"Potential Denial of Service vulnerability detected with function '{node.func.id}'.",
                     "denial_of_service",
                     "medium",
-                    get_line_number(node)
+                    get_line_number(node),
                 )
+
 
 def analyze_unchecked_external_calls(code):
     tree = ast.parse(code)
 
     def is_external_call(node):
-        return isinstance(node, astnodes.Call) and isinstance(node.func, astnodes.Index) and isinstance(node.func.value, astnodes.Name)
+        return (
+            isinstance(node, astnodes.Call)
+            and isinstance(node.func, astnodes.Index)
+            and isinstance(node.func.value, astnodes.Name)
+        )
 
     for node in ast.walk(tree):
         if isinstance(node, astnodes.Function):
@@ -267,8 +314,9 @@ def analyze_unchecked_external_calls(code):
                         f"Unchecked external call detected in function '{node.name.id}'.",
                         "unchecked_external_call",
                         "medium",
-                        get_line_number(n)
+                        get_line_number(n),
                     )
+
 
 def analyze_greedy_suicidal_functions(code):
     tree = ast.parse(code)
@@ -276,15 +324,23 @@ def analyze_greedy_suicidal_functions(code):
     for node in ast.walk(tree):
         if isinstance(node, astnodes.Function):
             for n in node.body.body:
-                if isinstance(n, astnodes.Call) and isinstance(n.func, astnodes.Name) and n.func.id == "transfer_funds":
-                    if not any(isinstance(subsequent_node, astnodes.Return) for subsequent_node in node.body.body):
+                if (
+                    isinstance(n, astnodes.Call)
+                    and isinstance(n.func, astnodes.Name)
+                    and n.func.id == "transfer_funds"
+                ):
+                    if not any(
+                        isinstance(subsequent_node, astnodes.Return)
+                        for subsequent_node in node.body.body
+                    ):
                         add_vulnerability(
                             "Greedy Function",
                             f"Greedy function detected without a return statement in function '{node.name.id}'.",
                             "greedy_function",
                             "high",
-                            get_line_number(n)
+                            get_line_number(n),
                         )
+
 
 def analyze_lua_code(code):
     global vulnerabilities
@@ -299,6 +355,18 @@ def analyze_lua_code(code):
     analyze_unchecked_external_calls(code)
     analyze_greedy_suicidal_functions(code)
     return vulnerabilities
+
+
+
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    code = request.form.get("code")
+    if not code:
+        return "No code provided", 400
+
+    vulnerabilities = analyze_lua_code(code)
+    return jsonify(vulnerabilities)
 
 @app.route('/')
 def home():
@@ -336,12 +404,16 @@ def home():
     <div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-4xl">
             <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
-            <form action="/analyze" method="post">
+            <form id="analyze-form" action="/analyze" method="post">
                 <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
                 <div class="flex justify-center">
-                    <input type="submit" value="Analyze" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <button type="submit" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
                 </div>
             </form>
+            <div id="results" class="mt-8"></div>
+                        <div class="flex justify-center mt-8">
+                <a href="/cells" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Go to Cells</a>
+            </div>
         </div>
     </div>
     
@@ -352,23 +424,163 @@ def home():
                 theme: 'material-darker',
                 lineNumbers: true
             });
+
+            const form = document.getElementById('analyze-form');
+            const resultsContainer = document.getElementById('results');
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                const code = editor.getValue();
+                const formData = new FormData();
+                formData.append('code', code);
+
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const vulnerabilities = await response.json();
+
+                resultsContainer.innerHTML = `
+                    <h2 class="text-xl font-bold">Vulnerabilities Found:</h2>
+                    <ul class="list-disc list-inside">
+                        ${vulnerabilities.map(vul => `
+                            <li>
+                                <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            });
         });
     </script>
 </body>
 </html>
-
-
-
     '''
+@app.route("/analyzecells", methods=["POST"])
+def analyze_cells():
+    code_cells = request.json.get("code_cells", [])
+    results = []
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    code = request.form.get('code')
-    if not code:
-        return "No code provided", 400
+    for cell in code_cells:
+        cell_vulnerabilities = []
+        global vulnerabilities
+        vulnerabilities = []
 
-    vulnerabilities = analyze_lua_code(code)
-    return jsonify(vulnerabilities)
+        try:
+            analyze_overflow_and_return(cell)
+            analyze_underflow_and_return(cell)
+            analyze_return(cell)
+            check_private_key_exposure(cell)
+            analyze_reentrancy(cell)
+            analyze_floating_pragma(cell)
+            analyze_denial_of_service(cell)
+            analyze_unchecked_external_calls(cell)
+            analyze_greedy_suicidal_functions(cell)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
+        if vulnerabilities:
+            cell_vulnerabilities.extend(vulnerabilities)
+
+        results.append({"code_cell": cell, "vulnerabilities": cell_vulnerabilities})
+
+    return jsonify(results)
+
+
+@app.route("/cells")
+def cells():
+    return """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lua Code Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.css">
+    <style>
+        .CodeMirror {
+            border: 1px solid #ddd;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Lua Code Analyzer</h1>
+        <div id="code-cell-container"></div>
+        <button id="add-code-cell" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded">Add Code Cell</button>
+        <button id="analyze-code" class="mt-4 ml-2 bg-green-500 text-white py-2 px-4 rounded">Analyze Code</button>
+        <div id="results" class="mt-8"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/mode/lua/lua.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const codeCellContainer = document.getElementById('code-cell-container');
+            const addCodeCellButton = document.getElementById('add-code-cell');
+            const analyzeCodeButton = document.getElementById('analyze-code');
+            const resultsContainer = document.getElementById('results');
+            let codeMirrors = [];
+
+            function createCodeCell() {
+                const codeCellDiv = document.createElement('div');
+                codeCellDiv.classList.add('mb-4');
+                const codeMirrorElement = document.createElement('textarea');
+                codeCellDiv.appendChild(codeMirrorElement);
+                codeCellContainer.appendChild(codeCellDiv);
+
+                const codeMirror = CodeMirror.fromTextArea(codeMirrorElement, {
+                    mode: 'lua',
+                    lineNumbers: true
+                });
+                codeMirrors.push(codeMirror);
+            }
+
+            addCodeCellButton.addEventListener('click', () => {
+                createCodeCell();
+            });
+
+            analyzeCodeButton.addEventListener('click', async () => {
+                const codeCells = codeMirrors.map(cm => cm.getValue());
+                const response = await fetch('/analyzecells', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code_cells: codeCells })
+                });
+                const results = await response.json();
+
+                resultsContainer.innerHTML = '';
+                results.forEach((result, index) => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.classList.add('mb-4');
+                    resultDiv.innerHTML = `
+                        <h2 class="text-xl font-bold">Code Cell ${index + 1}</h2>
+                        <pre class="bg-gray-200 p-2">${result.code_cell}</pre>
+                        <h3 class="text-lg font-bold">Vulnerabilities:</h3>
+                        <ul class="list-disc list-inside">
+                            ${result.vulnerabilities.map(vul => `
+                                <li>
+                                    <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                    resultsContainer.appendChild(resultDiv);
+                });
+            });
+
+            // Create the first code cell by default
+            createCodeCell();
+        });
+    </script>
+</body>
+</html>
+"""
+
+
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
