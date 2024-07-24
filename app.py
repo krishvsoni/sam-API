@@ -504,6 +504,10 @@ def cells():
             border: 1px solid #ddd;
             height: auto;
         }
+        .cm-s-material-darker {
+            background-color: #263238;
+            color: #c3c7cb;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -533,6 +537,8 @@ def cells():
 
                 const codeMirror = CodeMirror.fromTextArea(codeMirrorElement, {
                     mode: 'lua',
+                    theme: 'material-darker',
+
                     lineNumbers: true
                 });
                 codeMirrors.push(codeMirror);
