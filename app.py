@@ -411,6 +411,9 @@ def home():
                 </div>
             </form>
             <div id="results" class="mt-8"></div>
+                        <div class="flex justify-center mt-8">
+                <a href="/cells" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Go to Cells</a>
+            </div>
         </div>
     </div>
     
