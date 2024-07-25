@@ -386,38 +386,53 @@ def home():
 </head>
 <body class="bg-gradient-to-r from-blue-400 via-blue-200 to-blue-500 min-h-screen flex flex-col font-mono">
 
-    <nav class="bg-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex justify-center flex-1">
-                    <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
-                </div>
-                <div class="flex items-center">
-                    <div class="ml-4 flex items-center">
-                        <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo">
-                    </div>
-                </div>
+<nav class="bg-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex justify-center flex-1">
+        <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
+      </div>
+      <div class="flex items-center">
+        <div class="ml-4 flex items-center">
+          <div class="relative">
+            <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo" id="dropdown-button">
+            <div class="absolute right-2 mt-2 w-48 bg-white shadow-md text-center" id="dropdown-menu" style="display: none;">
+              <a href="https://www.npmjs.com/package/sam-cli-npm" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">📦 Check our npm package</a>
+              <a href="https://pypi.org/project/sam-cli/" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">🐍 Check our pypi package</a>
+              <a href="https://github.com/krishvsoni/sam-API" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">⭐️ Star on GitHub</a>
+              <div class="block px-4 py-2 text-gray-900 "> -- samverse --</div>
             </div>
+          </div>
         </div>
-    </nav>
+      </div>
+    </div>
+  </div>
+</nav>
 
-    <div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-4xl">
-            <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
-            <form id="analyze-form" action="/analyze" method="post">
-                <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
-                <div class="flex justify-center">
-                    <button type="submit" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
-                </div>
-            </form>
-            <div id="results" class="mt-8"></div>
-                        <div class="flex justify-center mt-8">
+<div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-4xl">
+        <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
+        <form id="analyze-form" action="/analyze" method="post">
+            <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
+            <div class="flex justify-between mt-4">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
                 <a href="/cells" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Go to Cells</a>
             </div>
-        </div>
+        </form>
+        <div id="results" class="mt-8"></div>
     </div>
+</div>
+
     
     <script>
+    document.getElementById('dropdown-button').addEventListener('click', function() {
+  var dropdownMenu = document.getElementById('dropdown-menu');
+  if (dropdownMenu.style.display === 'none') {
+    dropdownMenu.style.display = 'block';
+  } else {
+    dropdownMenu.style.display = 'none';
+  }
+});
         document.addEventListener('DOMContentLoaded', function () {
             var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
                 mode: 'lua',
@@ -496,7 +511,7 @@ def cells():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lua Code Analyzer</title>
+    <title>Sam</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.css">
     <style>
@@ -509,14 +524,31 @@ def cells():
             color: #c3c7cb;
         }
     </style>
+    <nav class="bg-white shadow-md font-mono">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex justify-center flex-1">
+                    <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-4 flex items-center">
+                        <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">Lua Code Analyzer</h1>
-        <div id="code-cell-container"></div>
-        <button id="add-code-cell" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded">Add Code Cell</button>
-        <button id="analyze-code" class="mt-4 ml-2 bg-green-500 text-white py-2 px-4 rounded">Analyze Code</button>
-        <div id="results" class="mt-8"></div>
+<body class="bg-gradient-to-r from-blue-200 via-blue-200 to-blue-300 min-h-screen flex flex-col font-mono">
+    <div class="container mx-auto p-7">
+        <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-8xl">
+            <h1 class="text-xl sm:text-2xl font-bold mb-4">Lua Code Cell</h1>
+            <div id="code-cell-container"></div>
+            <button id="add-code-cell" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded">Add Code Cell</button>
+            <button id="analyze-code" class="mt-4 ml-2 bg-green-500 text-white py-2 px-4 rounded">Analyze Code</button>
+            <div id="results" class="mt-8"></div>
+            <button id="download-json" class="mt-4 bg-red-500 text-white py-2 px-4 rounded hidden">Download JSON</button>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/mode/lua/lua.js"></script>
@@ -525,6 +557,7 @@ def cells():
             const codeCellContainer = document.getElementById('code-cell-container');
             const addCodeCellButton = document.getElementById('add-code-cell');
             const analyzeCodeButton = document.getElementById('analyze-code');
+            const downloadJsonButton = document.getElementById('download-json');
             const resultsContainer = document.getElementById('results');
             let codeMirrors = [];
 
@@ -538,7 +571,6 @@ def cells():
                 const codeMirror = CodeMirror.fromTextArea(codeMirrorElement, {
                     mode: 'lua',
                     theme: 'material-darker',
-
                     lineNumbers: true
                 });
                 codeMirrors.push(codeMirror);
@@ -577,14 +609,28 @@ def cells():
                     `;
                     resultsContainer.appendChild(resultDiv);
                 });
+
+                // Show the download button and attach click handler
+                downloadJsonButton.classList.remove('hidden');
+                downloadJsonButton.onclick = () => {
+                    const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'vulnerabilities.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
             });
 
-            // Create the first code cell by default
             createCodeCell();
         });
     </script>
 </body>
 </html>
+
+
 """
 
 
