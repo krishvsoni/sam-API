@@ -410,12 +410,18 @@ def home():
 </nav>
 
 <div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
-    <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-4xl">
+    <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full h-max-4xl max-w-4xl">
         <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
         <form id="analyze-form" action="/analyze" method="post">
             <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
             <div class="flex justify-between mt-4">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Analyze</button>
+                <button type="submit" id="analyze-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center">
+                    <span>Analyze</span>
+                    <svg id="loading-spinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
                 <a href="/cells" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Go to Cells</a>
             </div>
         </form>
@@ -423,9 +429,8 @@ def home():
     </div>
 </div>
 
-    
-    <script>
-    document.getElementById('dropdown-button').addEventListener('click', function() {
+<script>
+document.getElementById('dropdown-button').addEventListener('click', function() {
   var dropdownMenu = document.getElementById('dropdown-menu');
   if (dropdownMenu.style.display === 'none') {
     dropdownMenu.style.display = 'block';
@@ -433,44 +438,54 @@ def home():
     dropdownMenu.style.display = 'none';
   }
 });
-        document.addEventListener('DOMContentLoaded', function () {
-            var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
-                mode: 'lua',
-                theme: 'material-darker',
-                lineNumbers: true
-            });
 
-            const form = document.getElementById('analyze-form');
-            const resultsContainer = document.getElementById('results');
+document.addEventListener('DOMContentLoaded', function () {
+    var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+        mode: 'lua',
+        theme: 'material-darker',
+        lineNumbers: true
+    });
 
-            form.addEventListener('submit', async function (event) {
-                event.preventDefault();
-                const code = editor.getValue();
-                const formData = new FormData();
-                formData.append('code', code);
+    const form = document.getElementById('analyze-form');
+    const analyzeButton = document.getElementById('analyze-button');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const resultsContainer = document.getElementById('results');
 
-                const response = await fetch('/analyze', {
-                    method: 'POST',
-                    body: formData
-                });
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        analyzeButton.disabled = true;
+        loadingSpinner.classList.remove('hidden');
 
-                const vulnerabilities = await response.json();
+        const code = editor.getValue();
+        const formData = new FormData();
+        formData.append('code', code);
 
-                resultsContainer.innerHTML = `
-                    <h2 class="text-xl font-bold">Vulnerabilities Found:</h2>
-                    <ul class="list-disc list-inside">
-                        ${vulnerabilities.map(vul => `
-                            <li>
-                                <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
-                            </li>
-                        `).join('')}
-                    </ul>
-                `;
-            });
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            body: formData
         });
-    </script>
+
+        const vulnerabilities = await response.json();
+
+        analyzeButton.disabled = false;
+        loadingSpinner.classList.add('hidden');
+
+        resultsContainer.innerHTML = `
+            <h2 class="text-xl font-bold">Vulnerabilities Found:</h2>
+            <ul class="list-disc list-inside">
+                ${vulnerabilities.map(vul => `
+                    <li>
+                        <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+    });
+});
+</script>
 </body>
 </html>
+
     '''
 @app.route("/analyzecells", methods=["POST"])
 def analyze_cells():
@@ -544,8 +559,14 @@ def cells():
         <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-8xl">
             <h1 class="text-xl sm:text-2xl font-bold mb-4">Lua Code Cell</h1>
             <div id="code-cell-container"></div>
-            <button id="add-code-cell" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded">Add Code Cell</button>
-            <button id="analyze-code" class="mt-4 ml-2 bg-green-500 text-white py-2 px-4 rounded">Analyze Code</button>
+            <button id="add-code-cell" class="mt-4 bg-green-500 text-white py-2 px-4 rounded">Add Cell</button>
+            <button id="analyze-code" class="mt-4  bg-blue-500 text-white py-2 px-4 rounded flex items-center">
+                <span>Analyze Code</span>
+                <svg id="loading-spinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
             <div id="results" class="mt-8"></div>
             <button id="download-json" class="mt-4 bg-red-500 text-white py-2 px-4 rounded hidden">Download JSON</button>
         </div>
@@ -553,10 +574,12 @@ def cells():
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/mode/lua/lua.js"></script>
     <script>
+    
         document.addEventListener('DOMContentLoaded', () => {
             const codeCellContainer = document.getElementById('code-cell-container');
             const addCodeCellButton = document.getElementById('add-code-cell');
             const analyzeCodeButton = document.getElementById('analyze-code');
+            const loadingSpinner = document.getElementById('loading-spinner');
             const downloadJsonButton = document.getElementById('download-json');
             const resultsContainer = document.getElementById('results');
             let codeMirrors = [];
@@ -581,6 +604,9 @@ def cells():
             });
 
             analyzeCodeButton.addEventListener('click', async () => {
+                analyzeCodeButton.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+
                 const codeCells = codeMirrors.map(cm => cm.getValue());
                 const response = await fetch('/analyzecells', {
                     method: 'POST',
@@ -590,6 +616,9 @@ def cells():
                     body: JSON.stringify({ code_cells: codeCells })
                 });
                 const results = await response.json();
+
+                analyzeCodeButton.disabled = false;
+                loadingSpinner.classList.add('hidden');
 
                 resultsContainer.innerHTML = '';
                 results.forEach((result, index) => {
