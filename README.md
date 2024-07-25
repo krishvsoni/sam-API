@@ -122,9 +122,10 @@ The application will be accessible at `http://0.0.0.0:5000`.
 
 ## Dependencies
 
-- Flask
-- Tailwind CSS
-- CodeMirror
+- [Flask-Wiz](https://pypi.org/project/flask-wiz/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [CodeMirror](https://codemirror.net/)
+
 
 ## Notes
 
