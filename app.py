@@ -400,7 +400,7 @@ def home():
               <a href="https://www.npmjs.com/package/sam-cli-npm" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">📦 Check our npm package</a>
               <a href="https://pypi.org/project/sam-cli/" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">🐍 Check our pypi package</a>
               <a href="https://github.com/krishvsoni/sam-API" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">⭐️ Star on GitHub</a>
-              <div class="block px-4 py-2 text-gray-900 "> -- samverse --</div>
+              <div class="block px-4 py-2 text-gray-900  font-bold"> -- samverse --</div>
             </div>
           </div>
         </div>
