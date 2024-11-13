@@ -340,6 +340,15 @@ def analyze_greedy_suicidal_functions(code):
                             "high",
                             get_line_number(n),
                         )
+def get_code_and_vulnerable_lines(code, vulnerabilities):
+    # Total lines
+    total_lines = len(code.splitlines())
+    
+    # Vulnerable lines (extract unique line numbers from vulnerabilities)
+    vulnerable_lines = {vuln["line"] for vuln in vulnerabilities if "line" in vuln}
+    num_vulnerable_lines = len(vulnerable_lines)
+    
+    return total_lines, num_vulnerable_lines
 
 
 def analyze_lua_code(code):
@@ -354,8 +363,8 @@ def analyze_lua_code(code):
     analyze_denial_of_service(code)
     analyze_unchecked_external_calls(code)
     analyze_greedy_suicidal_functions(code)
+    
     return vulnerabilities
-
 
 
 
@@ -366,8 +375,25 @@ def analyze():
         return "No code provided", 400
 
     vulnerabilities = analyze_lua_code(code)
-    return jsonify(vulnerabilities)
+    total_lines, num_vulnerable_lines = get_code_and_vulnerable_lines(code, vulnerabilities)
 
+    # Check if any vulnerabilities were found
+    # if not vulnerabilities:
+    #     return jsonify({"message": "No vulnerabilities found."}), 200
+    
+    # return jsonify(vulnerabilities)
+    if not vulnerabilities:
+        return jsonify({
+            "message": "No vulnerabilities found.",
+            "total_lines": total_lines,
+            "vulnerable_lines": num_vulnerable_lines
+        })
+    
+    return jsonify({
+        "vulnerabilities": vulnerabilities,
+        "total_lines": total_lines,
+        "vulnerable_lines": num_vulnerable_lines
+    })
 @app.route('/')
 def home():
     return '''
