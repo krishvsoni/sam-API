@@ -138,4 +138,4 @@ This project is licensed under the MIT License.
 
 ## Contact
 
-For any inquiries or support, please contact [haardsolanki.itm@gmail.com].
+For any inquiries or support, please contact [connectsentio@gmail.com].

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 from luaparser import ast, astnodes
 from flask_cors import CORS
 
@@ -149,13 +149,11 @@ def analyze_overflow_and_return(code):
             for body_node in ast.walk(node.body):
                 analyze_overflow_in_node(body_node)
 
-            if node.name.id == "another_example":
+            if isinstance(node.name, astnodes.Name) and node.name.id == "another_example":
                 for n in node.body.body:
                     if isinstance(n, astnodes.Return):
                         for ret_val in n.values:
-                            if isinstance(
-                                ret_val, astnodes.Number
-                            ) and is_potential_overflow(ret_val.n):
+                            if isinstance(ret_val, astnodes.Number) and is_potential_overflow(ret_val.n):
                                 add_vulnerability(
                                     "Integer Overflow",
                                     f"Potential integer overflow detected in return statement of function '{node.name.id}'.",
@@ -163,7 +161,6 @@ def analyze_overflow_and_return(code):
                                     "high",
                                     get_line_number(ret_val),
                                 )
-
 
 def analyze_underflow_and_return(code):
     tree = ast.parse(code)
@@ -175,20 +172,17 @@ def analyze_underflow_and_return(code):
             for body_node in ast.walk(node.body):
                 analyze_underflow_in_node(body_node)
 
-            if node.name.id == "another_example":
+            if isinstance(node.name, astnodes.Name) and node.name.id == "another_example":
                 for n in node.body.body:
                     if isinstance(n, astnodes.Return):
                         for ret_val in n.values:
-                            if isinstance(
-                                ret_val, astnodes.Number
-                            ) and is_potential_underflow(ret_val.n):
+                            if isinstance(ret_val, astnodes.Number) and is_potential_underflow(ret_val.n):
                                 add_vulnerability(
                                     "Integer Underflow",
                                     f"Potential integer underflow detected in return statement of function '{node.name.id}'.",
                                     "underflow",
                                     "high",
-                                    get_line_number(ret_val),
-                                )
+                                    get_line_number(ret_val),)
 
 
 def analyze_return(code):
@@ -209,15 +203,8 @@ def analyze_return(code):
 
 def check_private_key_exposure(code):
     tree = ast.parse(code)
-    private_key_words = [
-        "privatekey",
-        "private_key",
-        "secretkey",
-        "secret_key",
-        "keypair",
-        "key_pair",
-        "api_key",
-    ]
+    private_key_words = ["privatekey", "private_key", "secretkey", "secret_key", "keypair", "key_pair", "api_key", "clientsecret", "client_secret", "access_key", "arweave_key", "arweave_private_key", "arweave_secret", "arweave_wallet", "arweave_wallet_key", "arweave_wallet_private_key", "arweave_wallet_secret", "arweave_keyfile", "arweave_key_file", "arweave_keypair", "arweave_key_pair", "arweave_api_key", "arweave_client_secret", "arweave_access_key"]
+
 
     for node in ast.walk(tree):
         if isinstance(node, astnodes.Assign):
@@ -350,10 +337,161 @@ def get_code_and_vulnerable_lines(code, vulnerabilities):
     
     return total_lines, num_vulnerable_lines
 
+# new function to analyze lua code
+
+def analyze_access_control(code):
+    """
+    Analyzes Lua code for access control issues, particularly in sensitive functions like mint and burn.
+    """
+    tree = ast.parse(code)
+
+    def has_access_control(node):
+        """
+        Check if the node contains access control logic, e.g., checking owner or caller.
+        """
+        if isinstance(node, astnodes.If):
+            for condition in ast.walk(node.test):
+                if isinstance(condition, astnodes.Name) and condition.id in ["owner", "caller"]:
+                    return True
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, astnodes.Function):
+            function_name = node.name.id if isinstance(node.name, astnodes.Name) else None
+            if function_name in ["mint", "burn"]:
+                access_control_found = False
+                for body_node in ast.walk(node.body):
+                    if has_access_control(body_node):
+                        access_control_found = True
+                        break
+                if not access_control_found:
+                    severity = "high" if function_name in ["mint", "burn"] else "medium"
+                    add_vulnerability(
+                        "Access Control Issue",
+                        f"Missing access control check in sensitive function '{function_name}'.",
+                        "access_control",
+                        severity,
+                        get_line_number(node),
+                    )
+
+def is_critical_state_change(node):
+    return (
+        isinstance(node, astnodes.Assign)
+        or (
+            isinstance(node, astnodes.Call)
+            and isinstance(node.func, astnodes.Name)
+            and node.func.id.lower() in ["mint", "burn", "transfer"]
+        )
+    )
+def is_error_handling_missing(node):
+    has_error_handling = any(
+        isinstance(stmt, astnodes.TryExcept) or isinstance(stmt, astnodes.PCall)
+        for stmt in node.body.body
+    )
+    return not has_error_handling
+
+def analyze_unhandled_errors_in_handlers(code):
+    tree = ast.parse(code)
+
+    for node in ast.walk(tree):
+        if isinstance(node, astnodes.Function):
+            if isinstance(node.name, astnodes.Name) and node.name.id == "another_example":
+                body = node.body.body
+                for stmt in body:
+                    if is_critical_state_change(stmt) and is_error_handling_missing(node):
+                        add_vulnerability(
+                            "Unhandled Errors in Handlers",
+                            f"Unhandled errors in function '{node.name.id}' where critical state changes occur.",
+                            "unhandled_errors",
+                            "high",
+                            get_line_number(stmt),
+                        )
+
+
+def analyze_reentrancy_in_handlers(code):
+    tree = ast.parse(code)
+
+    def is_state_change(node):
+        return isinstance(node, astnodes.Assign) or (
+            isinstance(node, astnodes.Call) and node.func.id.lower() in ["mint", "burn"]
+        )
+
+    def is_external_call(node):
+        # Check if the node is a Call node
+        if isinstance(node, astnodes.Call):
+            # If the function is a simple Name node (e.g., msg.reply or ao.send)
+            if isinstance(node.func, astnodes.Name):
+                return node.func.id.lower() in ["msg.reply", "ao.send"]
+            # If the function is an Index node (e.g., obj["key"])
+            elif isinstance(node.func, astnodes.Index):
+                # Check if the value part of the index is a Name node
+                if isinstance(node.func.value, astnodes.Name):
+                    return node.func.value.id.lower() in ["msg.reply", "ao.send"]
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, astnodes.Function):
+            body = node.body.body
+            for i, stmt in enumerate(body):
+                if is_external_call(stmt):
+                    for subsequent_node in body[i + 1:]:
+                        if is_state_change(subsequent_node):
+                            add_vulnerability(
+                                "Reentrancy in Handlers",
+                                f"Reentrancy vulnerability in function '{node.name.id}' where state changes follow external calls.",
+                                "reentrancy",
+                                "high",
+                                get_line_number(stmt),
+                            )
+
+
+
+
+def analyze_improper_balance_checks(code):
+    tree = ast.parse(code)
+
+    for node in ast.walk(tree):
+        if isinstance(node, astnodes.Call) and isinstance(node.func, astnodes.Name):
+            # Check for improper usage of balance operations
+            if node.func.id in ["add", "subtract"]:
+                args = node.args
+                if len(args) == 2 and all(isinstance(arg, astnodes.Name) for arg in args):
+                    if any(
+                        arg.id.lower() in ["balances[msg.from]", "balances[msg.recipient]"]
+                        for arg in args
+                    ):
+                        add_vulnerability(
+                            "Improper Balance Checks",
+                            f"Potential improper balance check in function '{node.func.id}'.",
+                            "improper_balance_check",
+                            "high",
+                            get_line_number(node),
+                        )
+
+            # Check for negative balances or improper handling
+            if (
+                node.func.id in ["add", "subtract"]
+                and any(isinstance(arg, astnodes.Number) and arg.n < 0 for arg in node.args)
+            ):
+                add_vulnerability(
+                    "Negative Balances",
+                    "Negative balance detected in a critical operation.",
+                    "negative_balance",
+                    "medium",
+                    get_line_number(node),
+                )
+
+
+
+
 
 def analyze_lua_code(code):
     global vulnerabilities
     vulnerabilities = []
+    analyze_improper_balance_checks(code)
+    analyze_reentrancy_in_handlers(code)
+    analyze_unhandled_errors_in_handlers(code)
+    analyze_access_control(code)
     analyze_overflow_and_return(code)
     analyze_underflow_and_return(code)
     analyze_return(code)
@@ -396,123 +534,8 @@ def analyze():
     })
 @app.route('/')
 def home():
-    return '''
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>SAM</title>
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
-    <!-- CodeMirror Theme (optional) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
-    <!-- CodeMirror JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/lua/lua.min.js"></script>
-</head>
-<body class="bg-gradient-to-r from-blue-400 via-blue-200 to-blue-500 min-h-screen flex flex-col font-mono">
+    return render_template('index.html')
 
-<nav class="bg-white shadow-md">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
-      <div class="flex justify-center flex-1">
-        <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
-      </div>
-      <div class="flex items-center">
-        <div class="ml-4 flex items-center">
-          <div class="relative">
-            <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo" id="dropdown-button">
-            <div class="absolute right-2 mt-2 w-48 bg-white shadow-md text-center" id="dropdown-menu" style="display: none;">
-              <a href="https://www.npmjs.com/package/sam-cli-npm" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">📦 Check our npm package</a>
-              <a href="https://pypi.org/project/sam-cli/" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">🐍 Check our pypi package</a>
-              <a href="https://github.com/krishvsoni/sam-API" class="block px-4 py-2 text-gray-900 hover:bg-gray-200">⭐️ Star on GitHub</a>
-              <div class="block px-4 py-2 text-gray-900  font-bold"> -- samverse --</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</nav>
-
-<div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
-    <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full h-max-4xl max-w-4xl">
-        <h1 class="text-xl sm:text-2xl font-bold mb-4">Enter Lua Code</h1>
-        <form id="analyze-form" action="/analyze" method="post">
-            <textarea id="code" name="code" rows="20" cols="80" class="w-full p-2 border rounded-md"></textarea><br>
-            <div class="flex justify-between mt-4">
-                <button type="submit" id="analyze-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center">
-                    <span>Analyze</span>
-                    <svg id="loading-spinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </button>
-                <a href="/cells" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Go to Cells</a>
-            </div>
-        </form>
-        <div id="results" class="mt-8"></div>
-    </div>
-</div>
-
-<script>
-document.getElementById('dropdown-button').addEventListener('click', function() {
-  var dropdownMenu = document.getElementById('dropdown-menu');
-  if (dropdownMenu.style.display === 'none') {
-    dropdownMenu.style.display = 'block';
-  } else {
-    dropdownMenu.style.display = 'none';
-  }
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
-        mode: 'lua',
-        theme: 'material-darker',
-        lineNumbers: true
-    });
-
-    const form = document.getElementById('analyze-form');
-    const analyzeButton = document.getElementById('analyze-button');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const resultsContainer = document.getElementById('results');
-
-    form.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        analyzeButton.disabled = true;
-        loadingSpinner.classList.remove('hidden');
-
-        const code = editor.getValue();
-        const formData = new FormData();
-        formData.append('code', code);
-
-        const response = await fetch('/analyze', {
-            method: 'POST',
-            body: formData
-        });
-
-        const vulnerabilities = await response.json();
-
-        analyzeButton.disabled = false;
-        loadingSpinner.classList.add('hidden');
-
-        resultsContainer.innerHTML = `
-            <h2 class="text-xl font-bold">Vulnerabilities Found:</h2>
-            <ul class="list-disc list-inside">
-                ${vulnerabilities.map(vul => `
-                    <li>
-                        <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
-                    </li>
-                `).join('')}
-            </ul>
-        `;
-    });
-});
-</script>
-</body>
-</html>
-
-    '''
 @app.route("/analyzecells", methods=["POST"])
 def analyze_cells():
     code_cells = request.json.get("code_cells", [])
@@ -546,147 +569,7 @@ def analyze_cells():
 
 @app.route("/cells")
 def cells():
-    return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sam</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.css">
-    <style>
-        .CodeMirror {
-            border: 1px solid #ddd;
-            height: auto;
-        }
-        .cm-s-material-darker {
-            background-color: #263238;
-            color: #c3c7cb;
-        }
-    </style>
-    <nav class="bg-white shadow-md font-mono">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex justify-center flex-1">
-                    <a href="https://sam-support.arweave.net/" class="text-gray-900 hover:bg-gray-200 px-3 py-2 rounded-md text-2xl font-medium">Security Auditing Monitoring</a>
-                </div>
-                <div class="flex items-center">
-                    <div class="ml-4 flex items-center">
-                        <img class="h-10 w-10 md:h-12 md:w-12 rounded-full" src="static/images/logo.png" alt="Logo">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-</head>
-<body class="bg-gradient-to-r from-blue-200 via-blue-200 to-blue-300 min-h-screen flex flex-col font-mono">
-    <div class="container mx-auto p-7">
-        <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-8xl">
-            <h1 class="text-xl sm:text-2xl font-bold mb-4">Lua Code Cell</h1>
-            <div id="code-cell-container"></div>
-            <button id="add-code-cell" class="mt-4 bg-green-500 text-white py-2 px-4 rounded">Add Cell</button>
-            <button id="analyze-code" class="mt-4  bg-blue-500 text-white py-2 px-4 rounded flex items-center">
-                <span>Analyze Code</span>
-                <svg id="loading-spinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-            <div id="results" class="mt-8"></div>
-            <button id="download-json" class="mt-4 bg-red-500 text-white py-2 px-4 rounded hidden">Download JSON</button>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/lib/codemirror.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.6/mode/lua/lua.js"></script>
-    <script>
-    
-        document.addEventListener('DOMContentLoaded', () => {
-            const codeCellContainer = document.getElementById('code-cell-container');
-            const addCodeCellButton = document.getElementById('add-code-cell');
-            const analyzeCodeButton = document.getElementById('analyze-code');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const downloadJsonButton = document.getElementById('download-json');
-            const resultsContainer = document.getElementById('results');
-            let codeMirrors = [];
-
-            function createCodeCell() {
-                const codeCellDiv = document.createElement('div');
-                codeCellDiv.classList.add('mb-4');
-                const codeMirrorElement = document.createElement('textarea');
-                codeCellDiv.appendChild(codeMirrorElement);
-                codeCellContainer.appendChild(codeCellDiv);
-
-                const codeMirror = CodeMirror.fromTextArea(codeMirrorElement, {
-                    mode: 'lua',
-                    theme: 'material-darker',
-                    lineNumbers: true
-                });
-                codeMirrors.push(codeMirror);
-            }
-
-            addCodeCellButton.addEventListener('click', () => {
-                createCodeCell();
-            });
-
-            analyzeCodeButton.addEventListener('click', async () => {
-                analyzeCodeButton.disabled = true;
-                loadingSpinner.classList.remove('hidden');
-
-                const codeCells = codeMirrors.map(cm => cm.getValue());
-                const response = await fetch('/analyzecells', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code_cells: codeCells })
-                });
-                const results = await response.json();
-
-                analyzeCodeButton.disabled = false;
-                loadingSpinner.classList.add('hidden');
-
-                resultsContainer.innerHTML = '';
-                results.forEach((result, index) => {
-                    const resultDiv = document.createElement('div');
-                    resultDiv.classList.add('mb-4');
-                    resultDiv.innerHTML = `
-                        <h2 class="text-xl font-bold">Code Cell ${index + 1}</h2>
-                        <pre class="bg-gray-200 p-2">${result.code_cell}</pre>
-                        <h3 class="text-lg font-bold">Vulnerabilities:</h3>
-                        <ul class="list-disc list-inside">
-                            ${result.vulnerabilities.map(vul => `
-                                <li>
-                                    <strong>${vul.name}</strong>: ${vul.description} (Severity: ${vul.severity}, Line: ${vul.line})
-                                </li>
-                            `).join('')}
-                        </ul>
-                    `;
-                    resultsContainer.appendChild(resultDiv);
-                });
-
-                // Show the download button and attach click handler
-                downloadJsonButton.classList.remove('hidden');
-                downloadJsonButton.onclick = () => {
-                    const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'vulnerabilities.json';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                };
-            });
-
-            createCodeCell();
-        });
-    </script>
-</body>
-</html>
-
-
-"""
+    return render_template("cells.html")
 
 
 if __name__ == "__main__":
