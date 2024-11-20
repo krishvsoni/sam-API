@@ -484,7 +484,6 @@ def analyze_improper_balance_checks(code):
 
 
 
-
 def analyze_lua_code(code):
     global vulnerabilities
     vulnerabilities = []
