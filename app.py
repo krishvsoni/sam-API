@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from luaparser import ast, astnodes
+from luaparser.astnodes import *
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -481,12 +482,158 @@ def analyze_improper_balance_checks(code):
                     get_line_number(node),
                 )
 
+def analyze_replay_attacks(code):
+    """
+    Analyzes Lua code to detect replay attack vulnerabilities.
+    Checks for missing unique tracking mechanisms (msg.Id or timestamps)
+    and the absence of history verification for processed requests.
+    """
+    tree = ast.parse(code)
+
+    has_processed_table = False
+    has_replay_protection = False
+
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, astnodes.Assign)
+            and isinstance(node.targets[0], astnodes.Name)
+            and node.targets[0].id.lower() in ["processed_messages", "processed_ids"]
+        ):
+            has_processed_table = True
+
+        if (
+            isinstance(node, astnodes.If)
+            and isinstance(node.test, astnodes.Index)
+            and isinstance(node.test.value, astnodes.Name)
+            and node.test.value.id.lower() in ["processed_messages", "processed_ids"]
+        ):
+            if isinstance(node.test.idx, astnodes.Name) and node.test.idx.id == "msg.Id":
+                has_replay_protection = True
+
+    if not has_processed_table:
+        add_vulnerability(
+            "Replay Attack",
+            "No processed message table (e.g., processedMessages) to track processed requests.",
+            "replay_attack",
+            "high",
+            0,  
+        )
+
+    if has_processed_table and not has_replay_protection:
+        add_vulnerability(
+            "Replay Attack",
+            "Processed table exists but lacks replay protection mechanism for msg.Id.",
+            "replay_attack",
+            "medium",
+            0,  
+        )
+
+
+
+def analyze_state_reset_misuse(code):
+    """
+    Analyzes Lua code for misuse of the ResetState flag.
+    Detects:
+    1. Unrestricted access to ResetState.
+    2. Arbitrary toggling of ResetState in production.
+    """
+    tree = ast.parse(code)
+    vulnerabilities = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, Assign) and any(
+            isinstance(target, Name) and target.id == "ResetState"
+            for target in node.targets
+        ):
+            if not any(
+                isinstance(parent, If)
+                and any(
+                    isinstance(cond, Name) and cond.id in ["isAdmin", "isTrusted"]
+                    for cond in ast.walk(parent.test)
+                )
+                for parent in ast.walk(tree)
+            ):
+                vulnerabilities.append({
+                    "type": "State Reset Misuse",
+                    "message": "ResetState is toggled without access control.",
+                    "severity": "high",
+                    "line": getattr(node, "lineno", None),
+                })
+
+        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == "resetBalances":
+            if not any(
+                isinstance(parent, If)
+                and any(
+                    isinstance(cond, Name) and cond.id in ["isTrusted", "isAdmin"]
+                    for cond in ast.walk(parent.test)
+                )
+                for parent in ast.walk(tree)
+            ):
+                vulnerabilities.append({
+                    "type": "Critical State Reset",
+                    "message": "Critical reset operation performed without safeguard.",
+                    "severity": "medium",
+                    "line": getattr(node, "lineno", None),
+                })
+
+    return vulnerabilities
+
+
+# def analyze_tag_handling_security(code):
+#     """
+#     Analyzes Lua code to detect vulnerabilities in tag handling.
+#     Specifically checks for:
+#     1. Overwriting of critical keys by tags starting with "X-".
+#     2. Lack of sanitization or validation of tags starting with "X-".
+#     """
+#     if not code.strip():
+#         raise ValueError("Lua code is empty or invalid.")
+    
+#     try:
+#         tree = ast.parse(code)
+#     except luaparser.builder.SyntaxException as e:
+#         raise ValueError(f"Syntax error while parsing Lua code: {str(e)}")
+
+#     vulnerabilities = []
+
+#     critical_keys = ["userData", "session", "config", "admin"]
+
+#     for node in ast.walk(tree):
+#         if isinstance(node, Assign):
+#             for target in node.targets:
+#                 if isinstance(target, Index) and isinstance(target.idx, String):
+#                     tag_name = target.idx.s
+#                     if tag_name.startswith("X-"):  
+#                         if any(critical_key in tag_name for critical_key in critical_keys):
+#                             vulnerabilities.append({
+#                                 "type": "Tag Handling Security",
+#                                 "message": f"Tag '{tag_name}' starts with 'X-' and may overwrite a critical key.",
+#                                 "severity": "high",
+#                                 "line": getattr(node, "lineno", None),
+#                             })
+
+#                         if not any(
+#                             isinstance(stmt, Call) and isinstance(stmt.func, Name) and stmt.func.id == "sanitizeTag"
+#                             for stmt in ast.walk(tree)
+#                         ):
+#                             vulnerabilities.append({
+#                                 "type": "Tag Handling Security",
+#                                 "message": f"Tag '{tag_name}' starting with 'X-' is not sanitized.",
+#                                 "severity": "high",
+#                                 "line": getattr(node, "lineno", None),
+#                             })
+    
+#     return vulnerabilities
+
 
 
 
 def analyze_lua_code(code):
     global vulnerabilities
     vulnerabilities = []
+    # analyze_tag_handling_security(code)
+    analyze_state_reset_misuse(code)
+    analyze_replay_attacks(code)
     analyze_improper_balance_checks(code)
     analyze_reentrancy_in_handlers(code)
     analyze_unhandled_errors_in_handlers(code)
