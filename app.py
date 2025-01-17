@@ -633,7 +633,7 @@ def analyze_lua_code(code):
     vulnerabilities = []
     # analyze_tag_handling_security(code)
     analyze_state_reset_misuse(code)
-    analyze_replay_attacks(code)
+    # analyze_replay_attacks(code)
     analyze_improper_balance_checks(code)
     analyze_reentrancy_in_handlers(code)
     analyze_unhandled_errors_in_handlers(code)
